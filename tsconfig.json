@@ -12,6 +12,7 @@
         "outDir": "./dist",
         "declaration": true,
         "declarationDir": "./dist",
+        "noImplicitAny": true,
     },
     "include": [
         "src/**/*"
