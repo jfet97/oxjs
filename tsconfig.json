@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "lib": [
+            "es2018",
+        ],
+        "module": "es2015",
+        "moduleResolution": "node", // Tell tsc to look in node_modules for modules
+        "sourceMap": true, // Creates *.js.map files
+        "strict": true, // Strict types, eg. prohibits `var x=0; x=null`
+        "alwaysStrict": true, // Enable JavaScript's "use strict" mode
+        "outDir": "./dist",
+        "declaration": true,
+        "declarationDir": "./dist",
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

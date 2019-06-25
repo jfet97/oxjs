@@ -1,0 +1,8 @@
+# dist
+dist/
+
+# rollup cache
+.rpt2_cache/
+
+# node modules
+node_modules/
