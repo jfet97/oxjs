@@ -1,31 +1,35 @@
-import { DependenciesStoreAbstractParentClass } from './interfaces/DependenciesStore';
-import { observationValueEvaluatorFunc } from './interfaces/evaluators';
+import { DependenciesStore } from "./interfaces/DependenciesStore";
 
-export class DependenciesStore extends DependenciesStoreAbstractParentClass {
+export default class implements DependenciesStore {
 
-    init(key: string | symbol | number): void {
-        this.evaluatorsMap.set(key, []);
+    private evaluatorsMap: Map<PropertyKey, Evaluator[]> = new Map();
+
+    public init(key: PropertyKey): void {
+        this.evaluatorsMap.set(key, [] as Evaluator[]);
     }
 
-    subscribe(key: string | symbol | number, evaluator: observationValueEvaluatorFunc | null): void { // record()
+    public subscribe(key: PropertyKey, evaluator: Evaluator): void { // record()
 
-        const entry: observationValueEvaluatorFunc[]|undefined = this.evaluatorsMap.get(key);
+        const evaluatorsList: Evaluator[] | undefined = this.evaluatorsMap.get(key);
 
-        if (evaluator && (entry && !entry.includes(evaluator))) {
-            // !this.evaluatorsMap.get(key).includes(evaluator)
+        if (typeof evaluator === "function" && evaluatorsList && !evaluatorsList.includes(evaluator)) {
+            // !evaluatorsList.includes(evaluator)
             // will avoid duplications when:
             // 1) a dependencies is present more than one in a evaluator
             // 2) the evaluator is replayed during update process
-            entry.push(evaluator);
+            evaluatorsList.push(evaluator);
         }
     }
 
-    notify(key: string | symbol | number, ): void {
-        const entry: observationValueEvaluatorFunc[] | undefined = this.evaluatorsMap.get(key);
-        entry && entry.forEach(fn => fn());
+    public notify(key: PropertyKey): void {
+        const evaluators: Evaluator[] | undefined = this.evaluatorsMap.get(key);
+
+        if (evaluators) {
+            evaluators.forEach(fn => fn())
+        };
     }
 
-    delete(key: string | symbol | number): void {
+    public delete(key: PropertyKey): void {
         this.evaluatorsMap.delete(key);
     }
 }

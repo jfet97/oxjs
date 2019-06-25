@@ -1,3 +1,3 @@
-export default function isObject(entity: any): boolean {
-    return ((entity && typeof entity === "object") || (typeof entity === "function"));
+export default function isObject(entity: any): entity is object {
+    return entity === Object(entity);
 }

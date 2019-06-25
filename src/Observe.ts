@@ -1,12 +1,12 @@
-import { ObserveAbstractParentClass, ObserveConstructorInterface } from './interfaces/Observe';
-import { DependenciesStore } from './DependenciesStore'
-import { evaluatorOptions } from './interfaces/evaluators';
-import isObject from './utilities/isObject';
+// IMPORTA IL DECORATORE PER IL CHECK DEL COSTRUTTORE OBSERVER E
+// TYPIZZA A MODO LUI COI NUOVI TIPI
+
 import isArray from './utilities/isArray';
+import isObject from './utilities/isObject';
 
 class _Observe extends ObserveAbstractParentClass {
 
-    static observable(obj: object | any[]): object | never {
+    public static observable(obj: object | any[]): object | never {
 
         // immutability is the way
         let mutable: object | any[] = {};
@@ -211,7 +211,7 @@ class _Observe extends ObserveAbstractParentClass {
         })
     }
 
-    static observer(obj: object = {}, evaluators: evaluatorOptions[] = []): object {
+    public static observer(obj: object = {}, evaluators: evaluatorOptions[] = []): object {
         // set the corresponding evaluator for each prop present into evaluatorOptions[]
         evaluators.forEach(({ prop, evaluator }) => {
 

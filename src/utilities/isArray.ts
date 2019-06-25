@@ -1,3 +1,3 @@
-export default function isArray(entity: any): boolean {
+export default function isArray(entity: any): entity is any[] {
     return Array.isArray(entity);
 }
