@@ -20,7 +20,7 @@ const $source2 = ox.observable({
 // setting to it a prop called 'reactiveProp'
 const observer = ox.observer({}, [
     {
-        prop: 'reactiveProp',
+        key: 'reactiveProp',
         // we need an evaluator prop that will be called each time
         // one of the used observables changes
         evaluator() {
@@ -58,19 +58,19 @@ const $source = ox.observable({ nested: { value: 0, value2: 0 } });
 // the observer will have three reactiver props
 const observer = ox.observer({}, [
     {
-        prop: 'doubleValue',
+        key: 'doubleValue',
         evaluator() {
             return $source.nested.value;
         }
     },
     {
-        prop: 'valueMinusOne',
+        key: 'valueMinusOne',
         evaluator() {
             return $source.nested.value2;
         }
     },
     {
-        prop: 'n',
+        key: 'n',
         evaluator() {
             return $source.nested;
         }
