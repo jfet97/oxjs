@@ -5,7 +5,7 @@ __OxJS__ is a working in progress library written in TS that enable encapsulated
 ## simple observables
 
 ```js
-import { ox } = from 'oxjs';
+import { ox } from 'oxjs';
 
 // it creates two observable sources from two object literals
 const $source1 = ox.observable({
@@ -50,7 +50,7 @@ console.log(observer.reactiveProp); // My name is Luigi and I'm 28 years old
 ## nested observables
 
 ```js
-import { ox } = from 'oxjs';
+import { ox } from 'oxjs';
 
 // it creates an observable source from an object literal with nested properties
 const $source = ox.observable({ nested: { value: 0, value2: 0 } });
