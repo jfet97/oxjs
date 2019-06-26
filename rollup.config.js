@@ -2,13 +2,15 @@ import typescript from "rollup-plugin-typescript2";
 import cleanup from "rollup-plugin-cleanup";
 import minify from "rollup-plugin-babel-minify";
 import pkg from "./package.json";
+import sourcemaps from 'rollup-plugin-sourcemaps';
 
 export default {
   input: "src/index.ts",
   output: [
     {
       file: pkg.main,
-      format: "cjs"
+      format: "cjs",
+      sourcemap: true,
     }
   ],
   external: [
@@ -23,6 +25,7 @@ export default {
       comments: "none",
       extensions: ["ts"]
     }),
-    minify({})
+    minify({}),
+    sourcemaps()
   ]
 };
