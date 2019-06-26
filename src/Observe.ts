@@ -9,10 +9,11 @@ import { shallowCloneObjects } from './utilities/shallowCloneObjects';
 @staticImplements<ObserveCtor>()
 export class Observe {
 
-    public static observable(obj: UnknownObject): UnknownObject {
+    public static observable<T extends object>(obj: T): T {
+
 
         // clone the input object to mantain immutability
-        let inputObjCopy: UnknownObject;
+        let inputObjCopy: T;
         try {
             inputObjCopy = shallowCloneObjects(obj);
         } catch {
@@ -26,7 +27,7 @@ export class Observe {
         Object.entries(inputObjCopy).forEach(([key, value]) => {
             if (isObject(value)) {
                 // recursively transform non primitive properties into proxed objects
-                inputObjCopy[key] = Observe.observable(value);
+                (inputObjCopy as any)[key] = Observe.observable(value);
             }
 
             // initialize deps storage for each key of inputObjCopy
@@ -226,7 +227,7 @@ export class Observe {
                 Reflect.deleteProperty(proxedObj, prop);
                 return true;
             }
-        })
+        });
     }
 
     public static observer(futureObserver: object = {}, evaluators: EvaluatorsConfigList = []): object {

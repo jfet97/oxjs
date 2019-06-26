@@ -1,4 +1,4 @@
 export interface ObserveCtor {
-    observable(obj: UnknownObject): UnknownObject;
-    observer(obj: UnknownObject, evaluators: EvaluatorsConfigList): UnknownObject;
+    observable<T extends object>(obj: T): T;
+    observer(obj: object, evaluators: EvaluatorsConfigList): object;
 }
