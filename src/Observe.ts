@@ -9,6 +9,7 @@ export class Observe {
 
     public static observable(obj: UnknownObject): UnknownObject {
 
+        // clone the input object to mantain immutability
         let inputObjCopy: UnknownObject;
         try {
             inputObjCopy = shallowCloneObjects(obj);
@@ -62,7 +63,7 @@ export class Observe {
                 }
 
                 /* obj={a:{b:2}} due to Observe.observable -> Proxy(obj){Proxy(a){b:2}}
-                    
+
                     when we change 'b' in obj.a.b = 9
                     Proxy(obj).a will trigger the 'obj' get trap returning Proxy(a)
                     without particular effects because of the null guard
@@ -97,7 +98,7 @@ export class Observe {
                          Also the deleting of references has to made recursively: if a property is itself an object
                          we have to handle all its properties references deletion and then delete the initial property reference
                          (reference = reference to evaluators)
-                        
+
                     O-NO) If newValue is a primitive value, before discarding the reactive object contained by proxedObj.key,
                           we have to recursively remove all its references to its evaluators.
 
