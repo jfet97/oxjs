@@ -1,4 +1,4 @@
-import { staticImplements } from './decorators/staticImplements'
+import { staticImplements } from './decorators/staticImplements';
 import Dependents from './Dependents';
 import { ObserveCtor } from "./interfaces/ObserveCtor";
 import { isObject } from './utilities/isObject';
@@ -6,7 +6,7 @@ import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
 import { shallowCloneObjects } from './utilities/shallowCloneObjects';
 
 
-staticImplements<ObserveCtor>();
+@staticImplements<ObserveCtor>()
 export class Observe {
 
     public static observable(obj: UnknownObject): UnknownObject {
