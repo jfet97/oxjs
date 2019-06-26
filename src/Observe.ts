@@ -1,8 +1,10 @@
+import { staticImplements } from './decorators/staticImplements'
 import Dependents from './Dependents';
 import { ObserveCtor } from "./interfaces/ObserveCtor";
 import { isObject } from './utilities/isObject';
-import { isStringOrNumericKey } from './utilities/isStringOrNumericKey'
-import { shallowCloneObjects } from './utilities/shallowCloneObjects'
+import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
+import { shallowCloneObjects } from './utilities/shallowCloneObjects';
+
 
 staticImplements<ObserveCtor>();
 export class Observe {
@@ -14,7 +16,7 @@ export class Observe {
         try {
             inputObjCopy = shallowCloneObjects(obj);
         } catch {
-            throw new TypeError('Method observable method cannot work on primitives')
+            throw new TypeError('Method observable method cannot work on primitives');
         }
 
         // initialize a dependents instance for each object/nested object
