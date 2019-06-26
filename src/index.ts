@@ -1,2 +1,1 @@
-import Observe from './Observe';
-export default Observe;
+export { Observe } from './Observe';

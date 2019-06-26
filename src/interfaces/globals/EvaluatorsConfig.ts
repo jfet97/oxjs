@@ -1,4 +1,4 @@
 interface EvaluatorsConfig {
-    readonly key: PropertyKey,
+    readonly key: Keys,
     readonly evaluator: Evaluator,
 }

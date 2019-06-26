@@ -1,48 +1,40 @@
-// IMPORTA IL DECORATORE PER IL CHECK DEL COSTRUTTORE OBSERVER E
-// TYPIZZA A MODO LUI COI NUOVI TIPI
+import Dependents from './Dependents';
+import { ObserveCtor } from "./interfaces/ObserveCtor";
+import { isObject } from './utilities/isObject';
+import { isStringOrNumericKey } from './utilities/isStringOrNumericKey'
+import { shallowCloneObjects } from './utilities/shallowCloneObjects'
 
-import isArray from './utilities/isArray';
-import isObject from './utilities/isObject';
+staticImplements<ObserveCtor>();
+export class Observe {
 
-class _Observe extends ObserveAbstractParentClass {
+    public static observable(obj: UnknownObject): UnknownObject {
 
-    public static observable(obj: object | any[]): object | never {
-
-        // immutability is the way
-        let mutable: object | any[] = {};
-
-        let copy: object | any[] = {};
-        if (isArray(obj)) {
-            // if it is an array
-            copy = [...(obj as any[])];
-        } else if (isObject(obj)) {
-            // if obj is not null, an 'object' but not an array or a function
-            copy = { ...obj }
-        } else {
-            throw new TypeError('observable method cannot work on primitives')
+        let inputObjCopy: UnknownObject;
+        try {
+            inputObjCopy = shallowCloneObjects(obj);
+        } catch {
+            throw new TypeError('Method observable method cannot work on primitives')
         }
 
-        mutable = copy;
+        // initialize a dependents instance for each object/nested object
+        const deps = new Dependents();
 
-
-        // initialize a deps instance for each object/nested object
-        const deps = new DependenciesStore();
-
-        // recursively transform non primitive properties into proxed objects
-        // mantaining immutability
-        Object.entries(mutable).forEach(([key, value]) => {
-            if ((value && typeof value === "object") || typeof value === "function") {
-                (mutable as any)[key] = _Observe.observable(value);
+        // handle inputObjCopy keys
+        Object.entries(inputObjCopy).forEach(([key, value]) => {
+            if (isObject(value)) {
+                // recursively transform non primitive properties into proxed objects
+                inputObjCopy[key] = Observe.observable(value);
             }
-            // initialize deps storage for current key to an empty array
+
+            // initialize deps storage for each key of inputObjCopy
             deps.init(key);
         })
 
-        return new Proxy(mutable, {
+        return new Proxy(inputObjCopy, {
 
             get(proxedObj, key) {
-                /* obj={a:{b:2}} -> (due to _Observe.observable) Proxy(obj){Proxy(a){b:2}}
-                    
+                /* obj={a:{b:2}} due to Observe.observable ->  Proxy(obj){Proxy(a){b:2}}
+
                     when we read 'b' in 'obj.a.b'
                     Proxy(obj).a will trigger this trap returning Proxy(a)
                     Proxy(a).b will trigger this trap and it will return Proxy(a).b
@@ -51,22 +43,36 @@ class _Observe extends ObserveAbstractParentClass {
                 */
 
                 // if the accessed prop is an object (a proxy in practice)
-                // it will be returned to be accessed in a chain
+                // it will be returned to be accessed in the chain
+                // triggering the inner get trap
                 const res = Reflect.get(proxedObj, key);
 
-                // record a evaluator
-                deps.subscribe(key, _Observe.observationValueEvaluator);
+                // record the current evaluator
+                if (isStringOrNumericKey(key)) {
+                    deps.subscribe(key, Observe.currentEvaluator);
+                }
 
                 return res;
             },
 
             set(proxedObj, key, newValue) {
-                /* obj={a:{b:2}} -> (due to _Observe.observable) Proxy(obj){Proxy(a){b:2}}
+
+                if (!isStringOrNumericKey(key)) {
+                    return Reflect.set(proxedObj, key, newValue);
+                }
+
+                /* obj={a:{b:2}} due to Observe.observable -> Proxy(obj){Proxy(a){b:2}}
                     
                     when we change 'b' in obj.a.b = 9
-                    Proxy(obj).a will trigger the get trap returning Proxy(a) without particular effects
-                    because the evaluator dependency will already have been collected
-                    Proxy(a).b = 9 will trigger this trap setting the new value and notifying obj.a.b observers
+                    Proxy(obj).a will trigger the 'obj' get trap returning Proxy(a)
+                    without particular effects because of the null guard
+                    Proxy(a).b = 9 will trigger the current Proxy trap,
+                    setting the new value and notifying only obj.a.b observers.
+                    obj.a should not be notified because if them depends on obj.a itself
+                    it means that they are interested to the obj.a reference.
+                    If they were interested to one or more specific props of obj.a
+                    they would have writte obj.a.prop like obj.a.b, becoming dependents of
+                    both obj.a and obj.a.b
 
                     when we change 'a' in obj.a.b
                     Proxy(obj).a will trigger this trap setting the new value and notifying obj.a and obj.a.b observers
@@ -82,15 +88,18 @@ class _Observe extends ObserveAbstractParentClass {
                         NO-NO) proxedObj.key is not an object, newValue is not an object
 
                     What to do:
-                    O-O) To not loose setted evaluators and to properly remove references from those referenced
-                         by properties (deps) not present into the newValue, instead of replacing proxedObj.key with newValue
-                         we assign to each prop of proxedObj.key the corresponding property present on newValue, recursively.
-                         Because proxedObj.key is alreadyan observable, we haven't to restore reactivity.
+                    O-O) To not loose already setted evaluators and to properly remove no more necessary references to evaluators,
+                         instead of replacing proxedObj.key with newValue, we assign to each prop of proxedObj.key
+                         the corresponding value present on newValue, recursively.
+                         Because proxedObj.key is already an observable, we haven't to restore reactivity.
+                         Then we have to remove those keys into the proxedObj.key object that aren't present 
+                         inside newValue.
                          Also the deleting of references has to made recursively: if a property is itself an object
                          we have to handle all its properties references deletion and then delete the initial property reference
+                         (reference = reference to evaluators)
                         
                     O-NO) If newValue is a primitive value, before discarding the reactive object contained by proxedObj.key,
-                          we have to recursively remove all its references (deps) to its evaluators.
+                          we have to recursively remove all its references to its evaluators.
 
                     NO-O) We can simply make newValue a reactive object
 
@@ -99,16 +108,16 @@ class _Observe extends ObserveAbstractParentClass {
 
 
                 // no problem for a possible evaluator insertion due to the get access to proxedObj.key
-                // because _Observe.observationValueEvaluator is null
-                const inner = Reflect.get(proxedObj, key);
+                // because Observe.currentEvaluator wioll be null
+                const inner = Reflect.get(proxedObj, key) as UnknownObject; // inner === proxedObj.key
                 const isProxedObjKeyObject: boolean = isObject(inner);
                 const isNewValueObject: boolean = isObject(newValue);
 
 
                 let useReflectSet: boolean = false;
-                let target: any = null;
-                let propertyKey: any = '';
-                let value: any = null;
+                const target = proxedObj;
+                let propertyKey: Keys;
+                let value: unknown;
 
 
                 // O-O)
@@ -118,52 +127,52 @@ class _Observe extends ObserveAbstractParentClass {
                     // Reflect.set is implied into the Object.entries(newValue) forEach
 
                     try {
-                        Object.entries(newValue).forEach(([p, v]) => {
-                            // to not loose current props' evaluators, instead of setting the new object value into proxedObj.key
-                            // we assign to each prop to the inner proxed object
-                            // to recursively trigger the set trap on the already presents props
-                            // updating their vaues
-                            (inner as any)[p] = v; // this implies a sort of recursion on each subprop...
+                        Object.entries(newValue).forEach(([k, v]) => {
+                            // to not loose current props' evaluators, instead of setting the new object value ref into proxedObj.key
+                            // we assign to each prop of proxedObj.key the corresponding value present on the new object value,
+                            // recursivelytrigger the set trap of the proxedObj notifying their observers
+
+                            // this implies a sort of recursion on each subprop...
+                            // because if inner[k] were an object, inners set traps will be called
+                            inner[k] = v;
                         });
 
                         // delete props that are not present on newValue
                         const innerKeys = Object.keys(inner);
-                        const newValueKeys = Object.keys(inner);
+                        const newValueKeys = Object.keys(newValue);
                         for (const k of innerKeys) { // ...so this will be automatically executed also for subprops
                             if (!newValueKeys.includes(k)) {
                                 delete inner[k];
-                                // the proxy will handle the deletion of 
+                                // the proxy will handle the deletion of
                                 // references to evaluators
                             }
                         }
 
-                        // proxedObj.key reference has not changed but it should have done
-                        // this is only a workaround to not loose evaluators
-                        // so we must anyway to notify the fake change to proxedObj.key
-                        // calling deps.notify(propertyKey) later
+
                     } catch (e) {
                         throw e;
                     }
 
+                    // we have not to call ReflectSet later because we
+                    // don't plan to replace proxedObj.key with newValue
                     useReflectSet = false;
+
+                    // proxedObj.key reference has not changed but it should have done
+                    // this is only a workaround to not loose evaluators
+                    // so we must anyway to notify the fake change to proxedObj.key
+                    // calling deps.notify(propertyKey) later
                     propertyKey = key;
                 }
 
                 // O-NO)
                 if (isProxedObjKeyObject && !isNewValueObject) {
 
-                    (function removeAllDependencies(obj) {
-                        for (const k of obj) {
-                            if (isObject(obj[k])) {
-                                // recursively erase all dependencies
-                                removeAllDependencies(obj[k]);
-                            }
-                            delete obj[k];
-                        }
-                    })(inner);
+                    removeAllDependenciesRecursively(inner);
 
+                    // we have to call ReflectSet later because we
+                    // have to replace proxedObj.key with newValue
+                    // and we will notify observers
                     useReflectSet = true;
-                    target = proxedObj;
                     propertyKey = key;
                     value = newValue;
                 }
@@ -174,17 +183,21 @@ class _Observe extends ObserveAbstractParentClass {
                     // and the newValue is an object
                     // we can simply made the new one reactive
 
+                    // we have to call ReflectSet later because we
+                    // have to replace proxedObj.key with newValue
+                    // and we will notify observers
                     useReflectSet = true;
-                    target = proxedObj;
                     propertyKey = key;
-                    value = _Observe.observable(newValue);
+                    value = Observe.observable(newValue);
                 }
 
                 // NO-NO)
                 if (!isProxedObjKeyObject && !isNewValueObject) {
 
+                    // we have to call ReflectSet later because we
+                    // have to replace proxedObj.key with newValue
+                    // and we will notify observers
                     useReflectSet = true;
-                    target = proxedObj;
                     propertyKey = key;
                     value = newValue;
                 }
@@ -192,61 +205,81 @@ class _Observe extends ObserveAbstractParentClass {
                 if (useReflectSet) {
                     // is strict mode, an unsuccessful Reflect.set operation applied to a proxed obj will trigger an Error
                     try {
-                        Reflect.set(target, propertyKey, value);
+                        Reflect.set(target, propertyKey!, value);
                     } catch (e) {
                         throw e;
                     }
 
                 }
 
-                deps.notify(propertyKey); // to always notify subscribers about the change
+                deps.notify(propertyKey!); // to always notify subscribers about the change
                 return true; // we come here only if there were no errors
             },
 
             deleteProperty(proxedObj, prop) {
-                deps.delete(prop);
+                if (isStringOrNumericKey(prop)) {
+                    deps.delete(prop);
+                }
                 Reflect.deleteProperty(proxedObj, prop);
                 return true;
             }
         })
     }
 
-    public static observer(obj: object = {}, evaluators: evaluatorOptions[] = []): object {
-        // set the corresponding evaluator for each prop present into evaluatorOptions[]
-        evaluators.forEach(({ prop, evaluator }) => {
+    public static observer(futureObserver: object = {}, evaluators: EvaluatorsConfigList = []): object {
+        // set the corresponding evaluator for each prop present into evaluators
+        evaluators.forEach(({ key, evaluator: expressionValueEvaluator }) => {
 
             let observationReturnedValue: any = null;
 
-            _Observe.observationValueEvaluator = () => {
-                // the function responsible of containing the observation expression
-                // is expressionValueEvaluator
-                // when we call it, all the dependencies will store this evaluator
-                // the observationValueEvaluator will be stored in each observed prop's storage
+            Observe.currentEvaluator = () => {
+                // the function responsible of containing the observation expression is expressionValueEvaluator
+                // when we call it, each accessed observables' props will store the evaluator as dependency
 
-                observationReturnedValue = evaluator.call(obj);
-                // if the evaluator is not an af, this will be the observer obj
+                // if the evaluator is not an af, this will point to the observer obj
+                observationReturnedValue = expressionValueEvaluator.call(futureObserver);
             }
 
-            // initial evaluation + dependencies registration
-            _Observe.observationValueEvaluator();
+            // initial evaluation with implicit dependencies registration thanks to the call
+            Observe.currentEvaluator();
 
-            Object.defineProperty(obj, prop, {
+            // initial setting of results is part of the initial evaluation
+            Object.defineProperty(futureObserver, key, {
                 get() {
                     return observationReturnedValue;
                 }
             })
 
-            // free the static for the next call to setObserver
-            _Observe.observationValueEvaluator = null;
+            // free the static prop for the next call to Observe.observer
+            Observe.currentEvaluator = null;
 
         });
 
-        return obj;
+        return futureObserver;
     }
+
+    private static currentEvaluator: NullableEvaluator = null;
 
 }
 
-// constructor interface check
-const Observe: ObserveConstructorInterface = _Observe;
-export default Observe;
+/**
+ * Used by the 'set' trap when an object has to be replaced
+ * with a non object. It will clean up all references to executors
+ * of the object we are replacing
+ *
+ * @param {UnknownObject} innerObj the object to clean
+ */
+function removeAllDependenciesRecursively(innerObj: UnknownObject) {
+    for (const k in innerObj) {
+        if (innerObj.hasOwnProperty(k)) {
+            if (isObject(innerObj[k])) {
+                // recursively erase all dependencies
+                removeAllDependenciesRecursively(innerObj[k]);
+            }
+            // the proxy will handle the deletion of
+            // references to evaluators
+            delete innerObj[k];
+        }
+    }
+}
 

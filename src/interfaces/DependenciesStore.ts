@@ -1,6 +1,6 @@
 export interface DependenciesStore {
-    init(key: PropertyKey): void;
-    subscribe(key: PropertyKey, evaluator: Evaluator): void;
-    notify(key: PropertyKey): void;
-    delete(key: PropertyKey): void;
+    init(key: Keys): void;
+    subscribe(key: Keys, evaluator: NullableEvaluator): void;
+    notify(key: Keys): void;
+    delete(key: Keys): void;
 }

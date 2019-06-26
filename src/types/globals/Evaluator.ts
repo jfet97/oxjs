@@ -1,3 +1,4 @@
-type Evaluator = (this: unknown) => unknown | null;
+type Evaluator = (this: unknown) => unknown;
+type NullableEvaluator = Evaluator | null;
 
 

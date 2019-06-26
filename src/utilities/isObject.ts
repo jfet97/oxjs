@@ -1,3 +1,3 @@
-export default function isObject(entity: any): entity is object {
+export function isObject(entity: unknown): entity is object {
     return entity === Object(entity);
 }
