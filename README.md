@@ -85,7 +85,7 @@ setInterval(() => {
     console.log("observer.doubleValue: ", observer.doubleValue);
     console.log("observer.valueMinusOne: ", observer.valueMinusOne);
     console.log("observer.n: ", observer.n);
-}, 3000);
+}, 1000);
 
 // after three seconds the '$source.nested' parent reference will be changed
 // but also nested observables will update accordingly
