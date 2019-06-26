@@ -7,7 +7,7 @@ import { shallowCloneObjects } from './utilities/shallowCloneObjects';
 
 
 @staticImplements<ObserveCtor>()
-export class Observe {
+export class ox {
 
     public static observable<T extends object>(obj: T): T {
 

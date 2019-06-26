@@ -1,1 +1,1 @@
-export { Observe as ox } from './Observe';
+export { ox } from './Observe';
