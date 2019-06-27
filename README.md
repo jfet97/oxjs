@@ -4,7 +4,7 @@ __OxJS__ is a working in progress library written in TS that enable encapsulated
 
 * [simple observables](#simple-observables)
 * [nested observables](#nested-observables)
-* [tips for TS dev](#tips-for-ts-devs)
+* [tips for TS devs](#tips-for-ts-devs)
 
 ## simple observables
 
