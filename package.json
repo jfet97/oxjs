@@ -1,7 +1,7 @@
 {
   "name": "oxjs",
-  "version": "0.1.52",
-  "description": "fresh reactivity on javascript",
+  "version": "0.1.53",
+  "description": "Reactive JavaScript Objects",
   "main": "dist/index.js",
   "files": [
     "/dist"
@@ -17,7 +17,8 @@
     "reactive",
     "observe",
     "observer",
-    "oxjs"
+    "oxjs",
+    "objects"
   ],
   "author": "Andrea Simone Costa <andrysimo1997@gmail.com>",
   "license": "MIT",
