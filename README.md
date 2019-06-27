@@ -1,6 +1,6 @@
 # oxjs
 
-__OxJS__ is a working in progress library written in TS that enable encapsulated reactivity, distantly inspired by VueJS way to handle properties changes.
+__OxJS__ is a working in progress library written in TS that enable encapsulated reactivity, distantly inspired by VueJS reactivity system.
 
 * [simple observables](#simple-observables)
 * [nested observables](#nested-observables)
