@@ -22,7 +22,7 @@ const $source2 = ox.observable({
 
 // it creates an observer from an empty object
 // setting to it a prop called 'reactiveProp'
-const observer = ox.observer({}, [
+const observer = ox.observer([
     {
         key: 'reactiveProp',
         // we need an evaluator prop that will be called each time
@@ -60,7 +60,7 @@ import { ox } from 'oxjs';
 const $source = ox.observable({ nested: { value: 0, value2: 0 } });
 
 // the observer will have three reactiver props
-const observer = ox.observer({}, [
+const observer = ox.observer([
     {
         key: 'doubleValue',
         evaluator() {

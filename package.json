@@ -1,6 +1,6 @@
 {
   "name": "oxjs",
-  "version": "0.1.51",
+  "version": "0.1.52",
   "description": "fresh reactivity on javascript",
   "main": "dist/index.js",
   "files": [
