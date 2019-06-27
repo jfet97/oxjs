@@ -230,36 +230,60 @@ export class Observe {
         });
     }
 
-    public static observer(futureObserver: object = {}, evaluators: EvaluatorsConfigList = []): object {
-        // set the corresponding evaluator for each prop present into evaluators
-        evaluators.forEach(({ key, evaluator: expressionValueEvaluator }) => {
+    public static observer<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): { 
+        [K in T[number]['key']]: ReturnType<Extract<T[number], { key: K }>['evaluator']>
+    } {
 
-            let observationReturnedValue: any = null;
+        type unionOfItems = T[number];
+        type keysUnion = unionOfItems['key'];
+        type returnType = {
+            [K in keysUnion]: ReturnType<Extract<T[number], { key: K }>['evaluator']>
+        }
+        // example:
+        // evaluatorsConfigs = [{key: 'prop1', evaluator: () => string}, {key: 'prop2', evaluator: () => number}]
+        // unionOfItems -> [{readonly key: 'prop1', readonly evaluator: () => string}, {readonly key: 'prop2', readonly evaluator: () => number}]
+        // keysUnion -> 'prop1' | 'prop2'
+        // returnType -> { prop1: string, prop2: number}
 
-            Observe.currentEvaluator = () => {
-                // the function responsible of containing the observation expression is expressionValueEvaluator
-                // when we call it, each accessed observables' props will store the evaluator as dependency
 
-                // if the evaluator is not an af, this will point to the observer obj
-                observationReturnedValue = expressionValueEvaluator.call(futureObserver);
-            }
 
-            // initial evaluation with implicit dependencies registration thanks to the call
-            Observe.currentEvaluator();
+        const observerUnderConstruction: returnType = {} as returnType;
 
-            // initial setting of results is part of the initial evaluation
-            Object.defineProperty(futureObserver, key, {
-                get() {
-                    return observationReturnedValue;
+        // set the corresponding evaluator for each prop present into evaluatorsConfigs
+        evaluatorsConfigs.forEach(({ key, evaluator: expressionValueEvaluator }) => {
+
+            // avoid duplicates key
+            if (!(key in observerUnderConstruction)) {
+                let observationReturnedValue: any = null;
+
+                Observe.currentEvaluator = () => {
+                    // the function responsible of containing the observation expression is expressionValueEvaluator
+                    // when we call it, each accessed observables' props will store the evaluator as dependency
+
+                    // if the evaluator is not an af, this will point to the observer obj
+                    observationReturnedValue = expressionValueEvaluator.call(observerUnderConstruction);
                 }
-            })
 
-            // free the static prop for the next call to Observe.observer
-            Observe.currentEvaluator = null;
+                // initial evaluation with implicit dependencies registration thanks to the call
+                Observe.currentEvaluator();
+
+                // initial setting of results is part of the initial evaluation
+                Object.defineProperty(observerUnderConstruction, key, {
+                    get() {
+                        // when evaluatorsConfigs will be called into question
+                        // observationReturnedValue will be updated for each key
+                        // so the returned value from this getter will change as well
+                        return observationReturnedValue;
+                    }
+                })
+
+                // free the static prop for the next call to Observe.observer
+                Observe.currentEvaluator = null;
+            }
 
         });
 
-        return futureObserver;
+        return observerUnderConstruction;
     }
 
     private static currentEvaluator: NullableEvaluator = null;

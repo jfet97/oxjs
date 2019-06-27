@@ -1,4 +1,6 @@
 export interface ObserveCtor {
     observable<T extends object>(obj: T): T;
-    observer(obj: object, evaluators: EvaluatorsConfigList): object;
+    observer<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): {
+        [K in T[number]['key']]: ReturnType<Extract<T[number], { key: K }>['evaluator']>
+    }
 }
