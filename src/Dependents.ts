@@ -1,4 +1,6 @@
 import { DependenciesStore } from "./interfaces/DependenciesStore";
+import { Evaluator, NullableEvaluator } from "./types/Evaluator";
+import { Keys } from "./types/Keys";
 
 export default class implements DependenciesStore {
 

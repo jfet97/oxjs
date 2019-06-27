@@ -1,6 +1,10 @@
 import { staticImplements } from './decorators/staticImplements';
 import Dependents from './Dependents';
 import { ObserveCtor } from "./interfaces/ObserveCtor";
+import { UnknownObject } from './interfaces/UnknownObject';
+import { NullableEvaluator } from './types/Evaluator';
+import { EvaluatorsConfigList } from './types/EvaluatorsConfigList';
+import { Keys } from './types/Keys';
 import { isObject } from './utilities/isObject';
 import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
 import { shallowCloneObjects } from './utilities/shallowCloneObjects';
@@ -230,7 +234,7 @@ export class Observe {
         });
     }
 
-    public static observer<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): { 
+    public static observer<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): {
         [K in T[number]['key']]: ReturnType<Extract<T[number], { key: K }>['evaluator']>
     } {
 

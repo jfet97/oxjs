@@ -1,1 +1,0 @@
-type EvaluatorsConfigList = ReadonlyArray<EvaluatorsConfig>
