@@ -7,8 +7,8 @@ The library is compiled into UMD format.
 $ npm i -S oxjs
 ```
 
-* [primitives observers](#primitives-observers)
-* [objects observers](#objects-observers)
+* [reactive primitives](#reactive-primitives)
+* [reactive objects](#reactive-objects)
 * [mixed observers](#mixed-observers)
 * [nested observables props](#nested-observables-props)
 * [observerByProps](#observerByProps)
@@ -18,8 +18,8 @@ $ npm i -S oxjs
 
 &nbsp;
 
-## primitives observers
-__OxJS__ let you create special reactive objects that act like primitives:
+## reactive primitives
+__OxJS__ let you create special reactive objects that act like a primitive:
 
 ```js
 const { ox } = require('oxjs');
@@ -99,7 +99,7 @@ if(numberObserver !== 0) {
 if(numberObserver.valueOf()) {
 ```
 
-## objects observers
+## reactive objects
 Obviously we are not limited to primitives:
 
 ```js
@@ -217,8 +217,8 @@ setTimeout(() => {
 ```
 
 ## observerByProps
-The `observer` method is very powerful, because let you return an observable of any kind. But when it comes to create a _objects observer_, each time an observable source on which it depends changes, the whole observer is recreated from scratch.\
-This could constitute performance problems when heavy objects observers are needed.\
+The `observer` method is very powerful, because let you return an observable of any kind. But when it comes to create a _reactive object_, each time an observable source on which it depends changes, the whole observer is recreated from scratch.\
+This could constitute performance problems when heavy reactive objects are needed.\
 Thankfully __OxJS__ provides an API to let you specify a separate observer for each reactive property:
 
 ```js
@@ -301,7 +301,7 @@ const observer = ox.observerByProps([
 
 ### observer created with observer
 _Observers_ created with `observe` deserve a separate discussion.\
-If an _objects observer_ is generated, TS will infer the correct type:
+If a _reactive object_ is generated, TS will infer the correct type:
 ```js
 const observer = ox.observer(() => ({
     doubleValue: $source1.years * 2,
@@ -310,7 +310,7 @@ const observer = ox.observer(() => ({
 // typeof observer is { doubleValue: number }
 ```
 
-If a _primitives observer_ is generated, TS will infer the primitive type:
+If a _reactive primitive_ is generated, TS will infer the primitive type:
 ```js
 const observer = ox.observer(() => $source1.years * 2));
 
@@ -321,5 +321,5 @@ const observer = ox.observer(() => $source1.years * 2));
 Incoming...
 
 ## issues
-Creating __primitives observers__ was a mess for me, for Typescript and for ES6 proxies. Have you ever seen a proxy with a dynamic target?\
+Creating __reactive primitives__ was a mess for me, for Typescript and for ES6 proxies. Have you ever seen a proxy with a dynamic target?\
 So if something does explode, please be patient and open a polite issue.
