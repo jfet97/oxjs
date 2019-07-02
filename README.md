@@ -312,7 +312,7 @@ const observer = ox.observer(() => ({
 
 If a _primitives observer_ is generated, TS will infer the primitive type:
 ```js
-const observer = ox.observer(() => n$source1.years * 2));
+const observer = ox.observer(() => $source1.years * 2));
 
 // typeof observer is number, not Number
 ```
