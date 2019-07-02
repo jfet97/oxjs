@@ -114,7 +114,7 @@ const $source2 = ox.observable({
     name: 'Mario',
 });
 
-// it creates an object observer
+// it creates a reactive object
 const reactiveObject = ox.observer(() => {
     const years = $source1.years;
     const name = $source2.name;
@@ -227,7 +227,7 @@ const { ox } = require('oxjs');
 // it creates an observable source from an object literal with nested properties
 const $source = ox.observable({ nested: { value1: 0, value2: 0 } });
 
-// the observer will have three reactiver props
+// the observer will have three reactive props
 const observer = ox.observerByProps([
     {
         key: 'doubleValue1',
