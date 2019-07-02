@@ -1,7 +1,7 @@
 # oxjs
 
 __OxJS__ is a working in progress library written in TS that enable encapsulated reactivity, distantly inspired by VueJS reactivity system.\
-The library is compiled into UMD format.
+The library is compiled into UMD format and uses ES6 Proxies.
 
 ```sh
 $ npm i -S oxjs
