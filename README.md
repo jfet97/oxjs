@@ -294,11 +294,12 @@ const observer = ox.observerByProps([
             return $source1.years * 2;
         }
     },
-] as const); // <- see here 
+] as const); // <- see here
 
 // typeof observer is { doubleValue: number }
 ```
 
+### observer created with observer
 _Observers_ created with `observe` deserve a separate discussion.\
 If an _objects observer_ is generated, TS will infer the correct type:
 ```js
