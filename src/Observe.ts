@@ -2,7 +2,7 @@ import { staticImplements } from './decorators/staticImplements';
 import Dependents from './Dependents';
 import { ObserveCtor } from "./interfaces/ObserveCtor";
 import { UnknownObject } from './interfaces/UnknownObject';
-import { NullableEvaluator } from './types/Evaluator';
+import { Evaluator, NullableEvaluator } from './types/Evaluator';
 import { EvaluatorsConfigList } from './types/EvaluatorsConfigList';
 import { Keys } from './types/Keys';
 import { isObject } from './utilities/isObject';
@@ -234,7 +234,111 @@ export class Observe {
         });
     }
 
-    public static observer<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): {
+    public static observer<T extends Evaluator>(evaluator: T): ReturnType<T> {
+
+        type returnType = ReturnType<T>;
+
+        // dinamicaly changeable proxy target
+        // it could be an object or an array or a function
+        // when the evaluator returns a primitive
+        // we set realTarget to a corresponding wrapper object
+        let realTarget: any;
+
+        // the observer is a fully transparent proxy
+        // we will dinamically change its target
+        // each time the evaluator function is called
+        const observer: returnType = new Proxy({}, {
+            apply(_, thisArg, argumentsList) {
+                // tslint:disable-next-line: ban-types
+                return Reflect.apply(realTarget, thisArg, argumentsList);
+            },
+            construct(_, argumentsList) {
+                // tslint:disable-next-line: ban-types
+                return Reflect.construct(realTarget, argumentsList);
+            },
+            defineProperty(_, key, descriptor) {
+                return Reflect.defineProperty(realTarget, key, descriptor);
+            },
+            deleteProperty(_, key) {
+                return Reflect.deleteProperty(realTarget, key);
+            },
+            get(_, key) {
+                let res = Reflect.get(realTarget, key, realTarget);
+                if (typeof res === "function") {
+                    res = res.bind(realTarget);
+                }
+                return res;
+            },
+            getOwnPropertyDescriptor(_, key) {
+                // sorry for this hack, but String objects have got non configurable
+                // properties (0,1,2,3,... for the letters and the length)
+                // but the unused target, the void object, hasn't got non configurable properties
+                // so this trap throws a TypeError if Object.getOwnPropertyDescriptor is called on the returned
+                // proxy when the dynamic target is a String object.
+                // "A property cannot be reported as non-configurable,
+                // if it does not exists as an own property of the target object
+                // or if it exists as a configurable own property of the target object."
+                //
+                // The main problem is that operations like console.log() and JSON.stringify()
+                // trigger this trap (IDK why)
+                //
+                // So the dirty solution consist of force the configurability to true.
+                // in reality it remains false, so a client won't be able to change its value anyway
+                // but we know that console.log() and JSON.stringify() are not going to try to change anything
+
+                let res = Reflect.getOwnPropertyDescriptor(realTarget, key);
+                if (realTarget instanceof String) {
+                    res = { ...res, configurable: true };
+                }
+                return res;
+            },
+            getPrototypeOf() {
+                return Reflect.getPrototypeOf(realTarget)
+            },
+            has(_, key) {
+                return Reflect.has(realTarget, key);
+            },
+            isExtensible() {
+                return Reflect.isExtensible(realTarget);
+            },
+            ownKeys() {
+                return Reflect.ownKeys(realTarget);
+            },
+            preventExtensions() {
+                return Reflect.preventExtensions(realTarget);
+            },
+            set(_, key, value) {
+                return Reflect.set(realTarget, key, value, realTarget);
+            },
+            setPrototypeOf(_, prototype) {
+                return Reflect.setPrototypeOf(realTarget, prototype);
+            },
+        }) as returnType;
+
+        Observe.currentEvaluator = () => {
+            // the function responsible of containing the observation expression is evaluator
+            // when we call it, each accessed observables' props will store the evaluator as dependency
+            const observationReturnedValue = evaluator.call(null);
+
+
+            // if the resulting value of calling the evaluator is an object
+            // we simply change the already returned proxy target
+            // if the resulting value of calling the evaluator is a primitive
+            // we set the proxy target to an object that could be used as a primitive
+            realTarget = new Object(observationReturnedValue);
+        }
+
+        // initial evaluation with implicit dependencies registration thanks to the call
+        // to the evaluator fn
+        Observe.currentEvaluator();
+
+        // free the static prop for the next calls
+        Observe.currentEvaluator = null;
+
+        return observer;
+    }
+
+    public static observerByProps<T extends Readonly<EvaluatorsConfigList>>(evaluatorsConfigs: T): {
         [K in T[number]['key']]: ReturnType<Extract<T[number], { key: K }>['evaluator']>
     } {
 
@@ -248,8 +352,6 @@ export class Observe {
         // unionOfItems -> [{readonly key: 'prop1', readonly evaluator: () => string}, {readonly key: 'prop2', readonly evaluator: () => number}]
         // keysUnion -> 'prop1' | 'prop2'
         // returnType -> { prop1: string, prop2: number}
-
-
 
         const observerUnderConstruction: returnType = {} as returnType;
 
@@ -269,6 +371,7 @@ export class Observe {
                 }
 
                 // initial evaluation with implicit dependencies registration thanks to the call
+                // to the evaluator fn
                 Observe.currentEvaluator();
 
                 // initial setting of results is part of the initial evaluation
@@ -279,9 +382,9 @@ export class Observe {
                         // so the returned value from this getter will change as well
                         return observationReturnedValue;
                     }
-                })
+                });
 
-                // free the static prop for the next call to Observe.observer
+                // free the static prop for the next calls
                 Observe.currentEvaluator = null;
             }
 

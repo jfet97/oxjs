@@ -8,8 +8,9 @@ export default {
   output: [
     {
       file: pkg.main,
-      format: "esm",
+      format: "umd",
       sourcemap: true,
+      name: "oxjs"
     }
   ],
   external: [
