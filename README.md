@@ -95,7 +95,7 @@ booleanObserver.valueOf() && true; // false
 // WARNING HERE: 'numberObserver' is a Number object and objects are truthy values
 if(numberObserver) { // the condition is always true
 // you have to extract its value implicitly or explicitly
-if(numberObserver !== 0) {
+if(numberObserver != 0) { // coercion, again :)
 if(numberObserver.valueOf()) {
 ```
 
