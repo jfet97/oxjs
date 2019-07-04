@@ -1,3 +1,4 @@
+[![NPM version](https://img.shields.io/npm/v/oxjs.svg)](https://www.npmjs.com/package/oxjs) [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/jfet97/oxjs/blob/master/LICENSE) ![](https://img.shields.io/npm/dt/oxjs.svg) ![](https://img.shields.io/badge/dependencies-no%20dependencies-%231e88e5%20.svg)
 # oxjs
 
 __OxJS__ is a working in progress library written in TS that enable encapsulated reactivity, distantly inspired by VueJS reactivity system.\
