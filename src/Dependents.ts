@@ -12,21 +12,42 @@ export default class implements DependenciesStore {
 
     public subscribe(key: Keys, evaluator: NullableEvaluator): void {
 
-        // an 'undefined' evaluatorsList should not happen because of 'init()' method
-        const evaluatorsList: Evaluator[] = this.evaluatorsMap.get(key) as Evaluator[];
+        // an 'undefined' evaluators should not happen because of 'init()' method
+        // but it happens if a client tries to get a property that was not initially defined
+        // this could happen inside an evaluator for example
+        let evaluators : Evaluator[];
 
-        if (typeof evaluator === "function" && !evaluatorsList.includes(evaluator)) {
-            // !evaluatorsList.includes(evaluator)
+        if (typeof this.evaluatorsMap.get(key) === "undefined") {
+            this.init(key);
+        }
+
+        evaluators = this.evaluatorsMap.get(key) as Evaluator[];
+
+        if (typeof evaluator === "function" && !evaluators.includes(evaluator)) {
+            // !evaluators.includes(evaluator)
             // will avoid duplications when:
             // 1) a dependencies is present more than one in a evaluator
             // 2) the evaluator is replayed during update process
-            evaluatorsList.push(evaluator);
+            evaluators.push(evaluator);
         }
     }
 
     public notify(key: Keys): void {
         // an 'undefined' evaluatorsList should not happen because of 'init()' method
-        const evaluators: Evaluator[] = this.evaluatorsMap.get(key) as Evaluator[];
+        // but it happens if a client tries to set a property that was not initially defined
+        // nor already used in a evaluator
+        //
+        // yes the evaluator list will be empty now, but as soon as evaluators
+        // that contain an instruction that implies a 'get' action with the current key will be called,
+        // the evaluator list will be populated
+        
+        let evaluators: Evaluator[];
+
+        if (typeof this.evaluatorsMap.get(key) === "undefined") {
+            this.init(key);
+        }
+
+        evaluators = this.evaluatorsMap.get(key) as Evaluator[];
 
         evaluators.forEach(fn => fn())
     }

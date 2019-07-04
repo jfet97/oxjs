@@ -5,6 +5,7 @@ import { UnknownObject } from './interfaces/UnknownObject';
 import { Evaluator, NullableEvaluator } from './types/Evaluator';
 import { EvaluatorsConfigList } from './types/EvaluatorsConfigList';
 import { Keys } from './types/Keys';
+import { isArray } from './utilities/isArray';
 import { isObject } from './utilities/isObject';
 import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
 
@@ -45,8 +46,22 @@ export class Observe {
                 // triggering the inner get trap
                 const res = Reflect.get(proxedObj, key);
 
-                // record the current evaluator
-                if (isStringOrNumericKey(key)) {
+                // record the current evaluator, also if the property is not
+                // already present in the object but not if it is not present because
+                // it isn't an own property: properties like array methods
+                // for arrays mustn't be recorded
+                const isKeyIntoTarget = (key in proxedObj) && proxedObj.hasOwnProperty(key);
+                const isKeyIntoTargetProto = (key in proxedObj) && !proxedObj.hasOwnProperty(key);
+
+                if (
+                    isStringOrNumericKey(key)
+                    && (
+                        (!isKeyIntoTarget && !isKeyIntoTargetProto)
+                        || (isKeyIntoTarget && !isKeyIntoTargetProto)
+                        || !(!isKeyIntoTarget && isKeyIntoTargetProto)
+                        || (isKeyIntoTarget && isKeyIntoTargetProto)
+                    )
+                ) {
                     deps.subscribe(key, Observe.currentEvaluator);
                 }
 
@@ -107,7 +122,7 @@ export class Observe {
 
                 // no problem for a possible evaluator insertion due to the get access to proxedObj.key
                 // because Observe.currentEvaluator wioll be null
-                const inner = Reflect.get(proxedObj, key) as UnknownObject; // inner === proxedObj.key
+                const inner: unknown = Reflect.get(proxedObj, key); // inner === proxedObj.key
                 const isProxedObjKeyObject: boolean = isObject(inner);
                 const isNewValueObject: boolean = isObject(newValue);
 
@@ -132,15 +147,15 @@ export class Observe {
 
                             // this implies a sort of recursion on each subprop...
                             // because if inner[k] were an object, inners set traps will be called
-                            inner[k] = v;
+                            (inner as UnknownObject)[k] = v;
                         });
 
                         // delete props that are not present on newValue
-                        const innerKeys = Object.keys(inner);
+                        const innerKeys = Object.keys((inner as UnknownObject));
                         const newValueKeys = Object.keys(newValue);
                         for (const k of innerKeys) { // ...so this will be automatically executed also for subprops
                             if (!newValueKeys.includes(k)) {
-                                delete inner[k];
+                                delete (inner as UnknownObject)[k];
                                 // the proxy will handle the deletion of
                                 // references to evaluators
                             }
@@ -165,7 +180,7 @@ export class Observe {
                 // O-NO)
                 if (isProxedObjKeyObject && !isNewValueObject) {
 
-                    removeAllDependenciesRecursively(inner);
+                    removeAllDependenciesRecursively(inner as UnknownObject);
 
                     // we have to call ReflectSet later because we
                     // have to replace proxedObj.key with newValue
@@ -211,6 +226,28 @@ export class Observe {
                 }
 
                 deps.notify(propertyKey!); // to always notify subscribers about the change
+
+                // workaround to the following problematic code, where, unlike the $source.push(4) counterpart,
+                // the length property is updated internally
+                // the reduce observer watch the length property as well under the hood, so when the length is updated
+                // who depends on it is updated too
+                // it seems that methods likes push() update the length property in a way (maybe something like this.length)
+                // that trigger the observer
+                // modifying manually the array insted does not trigger anything, though the length is updated
+                /*
+                    const $source = ox.observable([1, 2, 3]);
+                    const sum = ox.observer(() => source.reduce((a, v) => {
+                        return a + v;
+                    }, 0));
+                    $source[3] = 4;
+                */
+                //
+                // so, if the proxed obect is an array,
+                // we notify "length" observer to be sure
+                if (isArray(target)) {
+                    deps.notify("length");
+                }
+
                 return true; // we come here only if there were no errors
             },
 
