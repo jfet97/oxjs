@@ -7,7 +7,6 @@ import { EvaluatorsConfigList } from './types/EvaluatorsConfigList';
 import { Keys } from './types/Keys';
 import { isObject } from './utilities/isObject';
 import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
-import { shallowCloneObjects } from './utilities/shallowCloneObjects';
 
 
 @staticImplements<ObserveCtor>()
@@ -15,30 +14,21 @@ export class Observe {
 
     public static observable<T extends object>(obj: T): T {
 
-
-        // clone the input object to mantain immutability
-        let inputObjCopy: T;
-        try {
-            inputObjCopy = shallowCloneObjects(obj);
-        } catch {
-            throw new TypeError('Method observable method cannot work on primitives');
-        }
-
         // initialize a dependents instance for each object/nested object
         const deps = new Dependents();
 
-        // handle inputObjCopy keys
-        Object.entries(inputObjCopy).forEach(([key, value]) => {
+        // handle obj's keys
+        Object.entries(obj).forEach(([key, value]) => {
             if (isObject(value)) {
                 // recursively transform non primitive properties into proxed objects
-                (inputObjCopy as any)[key] = Observe.observable(value);
+                (obj as any)[key] = Observe.observable(value);
             }
 
-            // initialize deps storage for each key of inputObjCopy
+            // initialize deps storage for each key of obj
             deps.init(key);
         })
 
-        return new Proxy(inputObjCopy, {
+        return new Proxy(obj, {
 
             get(proxedObj, key) {
                 /* obj={a:{b:2}} due to Observe.observable ->  Proxy(obj){Proxy(a){b:2}}
