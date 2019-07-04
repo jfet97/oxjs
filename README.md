@@ -12,6 +12,7 @@ $ npm i -S oxjs
 * [reactive objects](#reactive-objects)
 * [mixed observers](#mixed-observers)
 * [nested observables props](#nested-observables-props)
+* [reactive arrays](#reactive-arrays)
 * [observerByProps](#observerByProps)
 * [tips for TS devs](#tips-for-ts-devs)
 * [tests](#tests)
@@ -215,6 +216,31 @@ setInterval(() => {
 setTimeout(() => {
     $source.nested = { value1: 100, value2: 200 };
 }, 3000);
+```
+## reactive arrays
+__OxJS__ is pretty good with arrays as well:
+```js
+var { ox } = require("oxjs");
+
+const $source = ox.observable([1, 2, 3]);
+
+const sum = ox.observer(() => $source.reduce((a, v) => {
+    return a + v;
+}, 0));
+
+console.log(`reduce result is: ${sum}`); // reduce result is: 6
+
+$source[3] = 4;
+
+console.log(`reduce result is: ${sum}`); // reduce result is: 10
+
+$source.push(10)
+
+console.log(`reduce result is: ${sum}`); // reduce result is: 20
+
+$source.shift()
+
+console.log(`reduce result is: ${sum}`); // reduce result is: 19
 ```
 
 ## observerByProps
