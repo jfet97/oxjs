@@ -36,10 +36,6 @@ export default class implements DependenciesStore {
         // an 'undefined' evaluatorsList should not happen because of 'init()' method
         // but it happens if a client tries to set a property that was not initially defined
         // nor already used in a evaluator
-        //
-        // yes the evaluator list will be empty now, but as soon as evaluators
-        // that contain an instruction that implies a 'get' action with the current key will be called,
-        // the evaluator list will be populated
         
         let evaluators: Evaluator[];
 

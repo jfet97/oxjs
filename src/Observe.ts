@@ -18,6 +18,7 @@ export class Observe {
         // initialize a dependents instance for each object/nested object
         const deps = new Dependents();
 
+
         // handle obj's keys
         Object.entries(obj).forEach(([key, value]) => {
             if (isObject(value)) {
@@ -244,7 +245,8 @@ export class Observe {
                 //
                 // so, if the proxed obect is an array,
                 // we notify "length" observer to be sure
-                if (isArray(target)) {
+                // when the key is not already 'length'
+                if (isArray(target) && propertyKey! !== "length") {
                     deps.notify("length");
                 }
 
@@ -274,7 +276,33 @@ export class Observe {
         // the observer is a fully transparent proxy
         // we will dinamically change its target
         // each time the evaluator function is called
-        const observer: returnType = new Proxy({}, {
+        //
+        // I need to know if an array will be returned by the evaluator
+        // because if so the fake target should be an array
+        // to properly handle Array.isArray() and similar operations
+
+        Observe.currentEvaluator = () => {
+            // the function responsible of containing the observation expression is evaluator
+            // when we call it, each accessed observables' props will store the evaluator as dependency
+            const observationReturnedValue = evaluator.call(null);
+
+
+            // if the resulting value of calling the evaluator is an object
+            // we simply change the already returned proxy target
+            // if the resulting value of calling the evaluator is a primitive
+            // we set the proxy target to an object that could be used as a primitive
+            realTarget = new Object(observationReturnedValue);
+        }
+
+        // initial evaluation with implicit dependencies registration thanks to the call
+        // to the evaluator fn
+        Observe.currentEvaluator();
+
+        // free the static prop for the next calls
+        Observe.currentEvaluator = null;
+
+
+        const observer: returnType = new Proxy(isArray(realTarget) ? [] : ({}), {
             apply(_, thisArg, argumentsList) {
                 // tslint:disable-next-line: ban-types
                 return Reflect.apply(realTarget, thisArg, argumentsList);
@@ -318,11 +346,8 @@ export class Observe {
                     res = { ...res, configurable: true };
                 }
 
-                // similar for arrays
-                // I'm so sorry
-                if (isArray(realTarget) && key === "length") {
-                    res = { ...res, configurable: true };
-                }
+                // no need to do it for arrays because the fake target
+                // is an array too
 
                 return res;
             },
@@ -348,26 +373,6 @@ export class Observe {
                 return Reflect.setPrototypeOf(realTarget, prototype);
             },
         }) as returnType;
-
-        Observe.currentEvaluator = () => {
-            // the function responsible of containing the observation expression is evaluator
-            // when we call it, each accessed observables' props will store the evaluator as dependency
-            const observationReturnedValue = evaluator.call(null);
-
-
-            // if the resulting value of calling the evaluator is an object
-            // we simply change the already returned proxy target
-            // if the resulting value of calling the evaluator is a primitive
-            // we set the proxy target to an object that could be used as a primitive
-            realTarget = new Object(observationReturnedValue);
-        }
-
-        // initial evaluation with implicit dependencies registration thanks to the call
-        // to the evaluator fn
-        Observe.currentEvaluator();
-
-        // free the static prop for the next calls
-        Observe.currentEvaluator = null;
 
         return observer;
     }
