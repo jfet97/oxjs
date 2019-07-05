@@ -24,7 +24,7 @@ $ npm i -S oxjs
 
 ## oxjs bases
 
-### ox.observable<T extends object>(obj: T): T
+### ox.observable<T extends object\>(obj: T): T
 This method takes an object or an array and transform it into an __observable__, so its fields can be used inside an evaluator to be observed (more on evaluators later):
 ```js
 const $observable = ox.observable({ a: 5 });
