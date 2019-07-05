@@ -8,6 +8,7 @@ The library is compiled into UMD format and uses ES6 Proxies.
 $ npm i -S oxjs
 ```
 
+* [oxjs bases](#oxjs-bases)
 * [reactive primitives](#reactive-primitives)
 * [reactive objects](#reactive-objects)
 * [mixed observers](#mixed-observers)
@@ -20,6 +21,55 @@ $ npm i -S oxjs
 * [issues](#issues)
 
 &nbsp;
+
+## oxjs bases
+
+### ox.observable<T extends object>(obj: T): T
+This method takes an object or an array and transform it into an __observable__, so its fields can be used inside an evaluator to be observed (more on evaluators later):
+```js
+const $observable = ox.observable({ a: 5 });
+
+// or
+
+const obj = { a: 5 };
+const $observable = ox.observable(obj);
+```
+
+In the latter case, be sure to apply changes on `$observable` from this point on or observers won't be notified:
+```js
+obj.a = newValue; // WRONG
+
+$observable.a = newValue; // NICE
+```
+
+### ox.observer<T extends Evaluator>(evaluator: T): ReturnType<T>
+This method takes a function, called __evaluator__, and uses it to produce an __observer__.\
+Inside the evaluator, observables' fields will be used, and a value should be retured as the result of the observation process.
+
+```js
+const $observable = ox.observable([1, 2, 3]);
+
+const sumObserver = ox.observer(function evaluator() {
+    // take values from the observable
+    const _0 = $observable[0];
+    const _1 = $observable[1];
+    const _2 = $observable[2];
+
+    // return a result
+    return _0 + _1 + _2;
+});
+```
+The `sumObserver` observer is called __reactive primitive__ because it will act as a `number`. In particular its value will be always the sum of the first three fields of the `$observable` array, also when one of them will change.\
+That is because those fileds are accessed into the __evaluator__, so each time one of them changes, the __evaluator__ will be called updating the `sumObserver` value:
+
+```js
+console.log(`${sumObserver}`); // 6
+
+// update the $observable
+$observable[0] = 5;
+
+console.log(`${sumObserver}`); // 10
+```
 
 ## reactive primitives
 __OxJS__ let you create special reactive objects that act like a primitive:
