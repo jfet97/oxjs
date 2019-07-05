@@ -27,6 +27,8 @@ $ npm i -S oxjs
 ### ox.observable<T extends object\>(obj: T): T
 This method takes an object or an array and transform it into an __observable__, so its fields can be used inside an evaluator to be observed (more on evaluators later):
 ```js
+const { ox } = require('oxjs');
+
 const $observable = ox.observable({ a: 5 });
 
 // or
@@ -47,6 +49,8 @@ This method takes a function, called __evaluator__, and uses it to produce an __
 Inside the evaluator, observables' fields will be used, and a value should be retured as the result of the observation process.
 
 ```js
+const { ox } = require('oxjs');
+
 const $observable = ox.observable([1, 2, 3]);
 
 const sumObserver = ox.observer(function evaluator() {
@@ -342,7 +346,7 @@ $source.push(4); // $source: [1, 2, 3, 4], $doubleMappedSource: [2, 4, 6, 8]
 // 20 - 4
 console.log(`${sum} - ${length}`);
 ```
-Here _$doubleMappedSource_ is both an __observer__, because it does observe _$$source_ doubling its values as result, and an __observable__, used by both _sum_ and _length_ observers.
+Here _$doubleMappedSource_ is both an __observer__, because it does observe _$source_ doubling its values as result, and an __observable__, used by both _sum_ and _length_ observers.
 
 ## observerByProps
 The `observer` method is very powerful, because let you return an observable of any kind. But when it comes to create a _reactive object_, each time an observable source on which it depends changes, the whole observer is recreated from scratch.\
