@@ -15,7 +15,7 @@ export default class implements DependenciesStore {
         // an 'undefined' evaluators should not happen because of 'init()' method
         // but it happens if a client tries to get a property that was not initially defined
         // this could happen inside an evaluator for example
-        let evaluators : Evaluator[];
+        let evaluators: Evaluator[];
 
         if (typeof this.evaluatorsMap.get(key) === "undefined") {
             this.init(key);
@@ -36,7 +36,7 @@ export default class implements DependenciesStore {
         // an 'undefined' evaluatorsList should not happen because of 'init()' method
         // but it happens if a client tries to set a property that was not initially defined
         // nor already used in a evaluator
-        
+
         let evaluators: Evaluator[];
 
         if (typeof this.evaluatorsMap.get(key) === "undefined") {
@@ -46,6 +46,12 @@ export default class implements DependenciesStore {
         evaluators = this.evaluatorsMap.get(key) as Evaluator[];
 
         evaluators.forEach(fn => fn())
+    }
+
+    public notifyAll(): void {
+        [...this.evaluatorsMap.entries()].forEach(([key, evaluators]) => {
+            evaluators.forEach(fn => fn())
+        });
     }
 
     public delete(key: Keys): void {

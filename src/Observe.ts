@@ -5,10 +5,14 @@ import { UnknownObject } from './interfaces/UnknownObject';
 import { Evaluator, NullableEvaluator } from './types/Evaluator';
 import { EvaluatorsConfigList } from './types/EvaluatorsConfigList';
 import { Keys } from './types/Keys';
+import { DEBUG, DEPSMAP } from './utilities/DEBUG';
 import { isArray } from './utilities/isArray';
 import { isObject } from './utilities/isObject';
 import { isStringOrNumericKey } from './utilities/isStringOrNumericKey';
 
+// map that will store each observable object as key
+// and its deDependents instance as a value
+const allDepsMap: Map<any, Dependents> = new Map<any, Dependents>();
 
 @staticImplements<ObserveCtor>()
 export class Observe {
@@ -17,6 +21,7 @@ export class Observe {
 
         // initialize a dependents instance for each object/nested object
         const deps = new Dependents();
+        allDepsMap.set(obj, deps);
 
 
         // handle obj's keys
@@ -28,7 +33,7 @@ export class Observe {
 
             // initialize deps storage for each key of obj
             deps.init(key);
-        })
+        });
 
         return new Proxy(obj, {
 
@@ -267,41 +272,23 @@ export class Observe {
 
         type returnType = ReturnType<T>;
 
-        // dinamicaly changeable proxy target
+        // realTarget: dinamicaly changeable proxy target
         // it could be an object or an array or a function
         // when the evaluator returns a primitive
         // we set realTarget to a corresponding wrapper object
-        let realTarget: any;
-
-        // the observer is a fully transparent proxy
-        // we will dinamically change its target
-        // each time the evaluator function is called
         //
         // I need to know if an array will be returned by the evaluator
         // because if so the fake target should be an array
         // to properly handle Array.isArray() and similar operations
-
-        Observe.currentEvaluator = () => {
-            // the function responsible of containing the observation expression is evaluator
-            // when we call it, each accessed observables' props will store the evaluator as dependency
-            const observationReturnedValue = evaluator.call(null);
-
-
-            // if the resulting value of calling the evaluator is an object
-            // we simply change the already returned proxy target
-            // if the resulting value of calling the evaluator is a primitive
-            // we set the proxy target to an object that could be used as a primitive
-            realTarget = new Object(observationReturnedValue);
-        }
-
-        // initial evaluation with implicit dependencies registration thanks to the call
-        // to the evaluator fn
-        Observe.currentEvaluator();
-
-        // free the static prop for the next calls
         Observe.currentEvaluator = null;
+        let realTarget: any = evaluator.call(null);
+        // this is not the initialization
+        // Observe.currentEvaluator is null for sure
 
 
+        // the observer is a fully transparent proxy
+        // we will dinamically change its target
+        // each time the evaluator function is called
         const observer: returnType = new Proxy(isArray(realTarget) ? [] : ({}), {
             apply(_, thisArg, argumentsList) {
                 // tslint:disable-next-line: ban-types
@@ -319,7 +306,11 @@ export class Observe {
             },
             get(_, key) {
                 let res = Reflect.get(realTarget, key, realTarget);
-                if (typeof res === "function") {
+                // bind the 'this' to realTarget in methods of primitives
+                // to avoid errors like: Number.prototype.toString requires that 'this' be a Number
+                // don't do everytime because we need to always access properties from the proxy
+                // when realTarget is not primitive
+                if (typeof res === "function" && (realTarget instanceof Number || realTarget instanceof String || realTarget instanceof Boolean)) {
                     res = res.bind(realTarget);
                 }
                 return res;
@@ -373,6 +364,58 @@ export class Observe {
                 return Reflect.setPrototypeOf(realTarget, prototype);
             },
         }) as returnType;
+
+
+
+        Observe.currentEvaluator = () => {
+            // the function responsible of containing the observation expression is evaluator
+            // when we call it, each accessed observables' props will store the evaluator as dependency
+            const observationReturnedValue = evaluator.call(null);
+
+
+            // if the resulting value of calling the evaluator is an object
+            // we simply change the already returned proxy target
+            // if the resulting value of calling the evaluator is a primitive
+            // we set the proxy target to an object that could be used as a primitive
+            realTarget = new Object(observationReturnedValue);
+
+            // an observer could become an observable too
+            // an observer is a proxy with a dynamic target
+            // an observable is a proxy that simply wraps the original object
+            //
+            // es:
+            // const $source = ox.observable([1, 2, 3]);
+            // const PPP = ox.observer(() => ($source.map(x => x * 2)));
+            // const $PPP = ox.observable(PPP);
+            //
+            // here PPP is an observer that watches $ources
+            // and $PPP is an observable proxy that wraps PPP
+            // So we can do: const res = ox.observer(() => ($PPP.reduce((a, b) => a + b, 0)));
+            // But what happens when $source is updated? $source.push(4)
+            // the evaluator that contains $source.map is re-executed, the dynamic target of PPP is updated
+            // without problems for $PPP that still wraps PPP
+            //
+            // the problem is that () => ($PPP.reduce((a, b) => a + b, 0)) is not reevaluated
+            // because no properties were changed on PPP, but simply its dynamic target was changed
+            // an instructon like PPP[4] = 9 would have unleashed the reevaluation
+            //
+            // here we are inside the change of the dynamic target of PPP
+            // observationReturnedValue is the new result of $source.map(x => x * 2))
+            // We have to check if PPP is an observable by looking inside 'allDepsMap'
+            // If so we have to notify all its dependets
+
+            const probablyObservable = allDepsMap.get(observer);
+            if (probablyObservable) {
+                probablyObservable.notifyAll();
+            }
+        }
+
+        // initial evaluation with implicit dependencies registration thanks to the call
+        // to the evaluator fn
+        Observe.currentEvaluator();
+
+        // free the static prop for the next calls
+        Observe.currentEvaluator = null;
 
         return observer;
     }
@@ -434,6 +477,11 @@ export class Observe {
 
     private static currentEvaluator: NullableEvaluator = null;
 
+    private static [DEBUG]: false;
+
+    private static get [DEPSMAP](): Map<any, Dependents> | null {
+        return this[DEBUG] ? allDepsMap : null;
+    }
 }
 
 /**
