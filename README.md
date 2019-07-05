@@ -42,7 +42,7 @@ obj.a = newValue; // WRONG
 $observable.a = newValue; // NICE
 ```
 
-### ox.observer<T extends Evaluator>(evaluator: T): ReturnType<T\>
+### ox.observer<T extends Evaluator\>(evaluator: T): ReturnType<T\>
 This method takes a function, called __evaluator__, and uses it to produce an __observer__.\
 Inside the evaluator, observables' fields will be used, and a value should be retured as the result of the observation process.
 
