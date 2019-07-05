@@ -317,6 +317,13 @@ export class Observe {
                 if (realTarget instanceof String) {
                     res = { ...res, configurable: true };
                 }
+
+                // similar for arrays
+                // I'm so sorry
+                if (isArray(realTarget) && key === "length") {
+                    res = { ...res, configurable: true };
+                }
+
                 return res;
             },
             getPrototypeOf() {
