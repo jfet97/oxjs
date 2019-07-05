@@ -243,6 +243,25 @@ $source.shift()
 console.log(`reduce result is: ${sum}`); // reduce result is: 19
 ```
 
+There are lot of possibilities:
+```js
+const { ox } = require("oxjs");
+
+const $source = ox.observable([1, 2, 3]);
+const $doubleMappedSource = ox.observable(ox.observer(() => $source.map(x => x * 2)));
+
+const sum = ox.observer(() => $doubleMappedSource.reduce((a, b) => a + b, 0));
+const length = ox.observer(() => $doubleMappedSource.length);
+
+// 12 - 3
+console.log(`${sum} - ${length}`);
+
+$source.push(4);
+
+// 20 - 4
+console.log(`${sum} - ${length}`);
+```
+
 ## observerByProps
 The `observer` method is very powerful, because let you return an observable of any kind. But when it comes to create a _reactive object_, each time an observable source on which it depends changes, the whole observer is recreated from scratch.\
 This could constitute performance problems when heavy reactive objects are needed.\
