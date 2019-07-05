@@ -13,6 +13,7 @@ $ npm i -S oxjs
 * [mixed observers](#mixed-observers)
 * [nested observables props](#nested-observables-props)
 * [reactive arrays](#reactive-arrays)
+* [observable observers](#observable-observers)
 * [observerByProps](#observerByProps)
 * [tips for TS devs](#tips-for-ts-devs)
 * [tests](#tests)
@@ -220,7 +221,7 @@ setTimeout(() => {
 ## reactive arrays
 __OxJS__ is pretty good with arrays as well:
 ```js
-var { ox } = require("oxjs");
+const { ox } = require("oxjs");
 
 const $source = ox.observable([1, 2, 3]);
 
@@ -243,24 +244,55 @@ $source.shift()
 console.log(`reduce result is: ${sum}`); // reduce result is: 19
 ```
 
-There are lot of possibilities:
+## observable observers
+Observers can be used as observables, increasing the power in your hands.
+
+Example with __objects__:
+```js
+const {ox} = require("oxjs");
+
+const $source = ox.observable({foo: 42}); 
+
+// { foo: 84 }
+const $doubleSource = ox.observable(ox.observer(() => ({foo: $source.foo * 2})));
+
+// 83
+const doubledFooMinusOne = ox.observer(() => $doubleSource.foo - 1);
+
+// "doubledFooMinusOne is 83"
+console.log(`doubledFooMinusOne is ${doubledFooMinusOne}`);
+
+$source.foo = 10; // $doubleSource: { foo: 20 }
+
+// "doubledFooMinusOne is 19"
+console.log(`doubledFooMinusOne is ${doubledFooMinusOne}`);
+```
+Here _$doubleSource_ is both an __observer__, because it does observe _$source.foo_ doubling its value as result, and an __observable__, used by another observer: _doubledFooMinusOne_.
+&nbsp;
+
+Example with __arrays__:
 ```js
 const { ox } = require("oxjs");
 
 const $source = ox.observable([1, 2, 3]);
+
+// [2, 4, 6]
 const $doubleMappedSource = ox.observable(ox.observer(() => $source.map(x => x * 2)));
 
+// 12
 const sum = ox.observer(() => $doubleMappedSource.reduce((a, b) => a + b, 0));
+// 3
 const length = ox.observer(() => $doubleMappedSource.length);
 
 // 12 - 3
 console.log(`${sum} - ${length}`);
 
-$source.push(4);
+$source.push(4); // $source: [1, 2, 3, 4], $doubleMappedSource: [2, 4, 6, 8]
 
 // 20 - 4
 console.log(`${sum} - ${length}`);
 ```
+Here _$doubleMappedSource_ is both an __observer__, because it does observe _$$source_ doubling its values as result, and an __observable__, used by both _sum_ and _length_ observers.
 
 ## observerByProps
 The `observer` method is very powerful, because let you return an observable of any kind. But when it comes to create a _reactive object_, each time an observable source on which it depends changes, the whole observer is recreated from scratch.\
