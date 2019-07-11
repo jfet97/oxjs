@@ -377,7 +377,33 @@ export class Observe {
             // we simply change the already returned proxy target
             // if the resulting value of calling the evaluator is a primitive
             // we set the proxy target to an object that could be used as a primitive
-            realTarget = new Object(observationReturnedValue);
+            if (observationReturnedValue === void 0) {
+                realTarget = {
+                    valueOf() {
+                        return void 0;
+                    },
+                    toString() {
+                        return void 0;
+                    },
+                    [Symbol.toPrimitive]() {
+                        return void 0
+                    }
+                }
+            } else if (observationReturnedValue === null) {
+                realTarget = {
+                    valueOf() {
+                        return null;
+                    },
+                    toString() {
+                        return null;
+                    },
+                    [Symbol.toPrimitive]() {
+                        return null
+                    }
+                }
+            } else {
+                realTarget = new Object(observationReturnedValue);
+            }
 
             // an observer could become an observable too
             // an observer is a proxy with a dynamic target

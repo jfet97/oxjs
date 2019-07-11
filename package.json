@@ -1,6 +1,6 @@
 {
   "name": "oxjs",
-  "version": "0.2.76",
+  "version": "0.2.8",
   "description": "Reactive JavaScript Objects",
   "main": "dist/index.js",
   "files": [
